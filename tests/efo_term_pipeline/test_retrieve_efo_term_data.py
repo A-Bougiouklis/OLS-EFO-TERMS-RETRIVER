@@ -1,5 +1,5 @@
 from unittest import TestCase
-from efo_term_pipeline import TermDataRetriever, NoMoreDataError, retrieve
+from efo_term_pipeline import TermDataRetriever, NoMorePagesError, retrieve
 from efo_term_pipeline.pipeline_methods import get_label
 
 
@@ -63,6 +63,26 @@ class RetrieveTests(TestCase):
         data = retrieve(pipeline=self.pipeline, retriever_class=Retriever)
         self.assertEqual(len(data), 0)
 
+    def test_finishes_when_there_are_no_more_pages(self):
+
+        counter = 0
+
+        class Retriever(TermDataRetriever):
+
+            def next_data(self) -> dict:
+                nonlocal counter
+
+                if counter == 0:
+                    counter += 1
+                    return super().next_data()
+                else:
+                    raise NoMorePagesError
+
+        data = retrieve(pipeline=self.pipeline, retriever_class=Retriever)
+
+        # Each page includes 20 terms
+        self.assertEqual(20, len(data))
+
     def test_when_there_are_no_labels_the_data_are_empty(self):
 
         class Retriever(TermDataRetriever):
@@ -77,23 +97,3 @@ class RetrieveTests(TestCase):
 
         data = retrieve(pipeline=self.pipeline, repetitions=1, retriever_class=Retriever)
         self.assertEqual(({},), data)
-
-    def test_when_there_are_no_more_data(self):
-
-        counter = 0
-
-        class Retriever(TermDataRetriever):
-
-            def next_data(self) -> dict:
-                nonlocal counter
-
-                if counter == 0:
-                    counter += 1
-                    return super().next_data()
-                else:
-                    raise NoMoreDataError
-
-        data = retrieve(pipeline=self.pipeline, retriever_class=Retriever)
-
-        # Each page includes 20 terms
-        self.assertEqual(20, len(data))

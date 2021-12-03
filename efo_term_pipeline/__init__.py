@@ -10,11 +10,16 @@ from .pipeline_methods import (
 import requests
 
 
-class NoMoreDataError(Exception):
+class NoMorePagesError(Exception):
+    """Raised when there are no more pages to retrieve"""
     ...
 
 
 class TermDataRetriever:
+    """
+    It uses the Ontology Lookup Service API (https://www.ebi.ac.uk/ols/docs/api) to fetch
+    every EFO term page from the database.
+    """
 
     TERMS_URL = "http://www.ebi.ac.uk/ols/api/ontologies/efo/terms"
 
@@ -31,7 +36,7 @@ class TermDataRetriever:
         try:
             return data["_links"]["next"]['href']
         except KeyError:
-            raise NoMoreDataError
+            raise NoMorePagesError
 
     @staticmethod
     def __get_last_url(data: dict) -> str:
@@ -63,7 +68,7 @@ def retrieve(
     Retrieves the needed data from the terms.
 
     :param repetitions: are used to finish the process quicker during testing
-    :param retriever_class: is used mock the TermDataRetriever during testing
+    :param retriever_class: is used to mock the TermDataRetriever during testing
     """
 
     retriever = retriever_class()
@@ -88,7 +93,7 @@ def retrieve(
         try:
             retrieved_data = retriever.next_data()
             retrieved_data_index += 1
-        except NoMoreDataError:
+        except NoMorePagesError:
             retrieved_data = {}
 
     return tuple(results)
